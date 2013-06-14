@@ -1,6 +1,42 @@
 #!/bin/bash
 # Looseley based on https://github.com/munin-monitoring/contrib/blob/master/plugins/php/php5-fpm_status 
 
+#################################################################
+#
+# Script to monitor PHP Fast Process Manager
+# 
+#################################################################
+#
+# Parameters understood: config, autoconf and suggest
+#
+#################################################################
+#
+# Configuration section
+# 
+# Configuration example
+# 
+# [php-fpm_*]
+# user root
+# env.HOST 127.0.0.1  # Host to connect to
+# env.PORT 9000       # TCP port number to connect to
+# env.URL_PATH status # Path of status page without leading '/'
+# env.CACHE_PATH      # System path to store cache file
+# env.CACHE_TIME      # How many minutes we keep cache file
+#
+# NOTE: When using UNIX domain sockets you should test the 
+# webserver HOST & PORT 
+#
+#################################################################
+#
+# Changelog:
+#  - First Release, Enjoy.
+#
+#################################################################
+#################################################################
+# Settigs required for autoconf
+#%# family=auto
+#%# capabilities=autoconf suggest
+
 # Dependencies
 BASENAME=$(which basename)
 AWK=$(which awk)
@@ -14,17 +50,6 @@ PORT=${PORT:-"9000"}
 URL_PATH=${URL_PATH:-"status"}
 CACHE_PATH=${CACHE_PATH:-"/tmp"}
 CACHE_TIME=${CACHE_TIME:-"4"}
-
-# ENV Overrides
-#HOST="127.0.0.1"
-#PORT="9000"
-#PORT="8080"
-#URL_PATH="status"
-#URL_PATH="php-fpm-status"
-#CACHE="YES"
-#CACHE_PATH="/tmp"
-#CACHE_TIME=4
-
 
 CATEGORY="php-fpm"
 
@@ -41,8 +66,16 @@ fi
 
 POOL=$( $AWK '/pool/{print $2}' ${CACHE_FILE} )
 
-# config settings
 case $1 in
+  autoconf)
+    echo "yes"
+  exit 0;;
+  suggest)
+    echo "connections"
+    echo "processes"
+    echo "children"
+    echo "uptime"
+  exit 0;;
   config)
     case ${TYPE} in
       connections)
