@@ -1,0 +1,127 @@
+#!/bin/bash
+# Looseley based on https://github.com/munin-monitoring/contrib/blob/master/plugins/php/php5-fpm_status 
+
+# Dependencies
+BASENAME=$(which basename)
+AWK=$(which awk)
+FIND=$(which find)
+ECHO=$(which echo)
+CAT=$(which cat)
+
+# Load from ENV
+HOST=${HOST:-"127.0.0.1"}
+PORT=${PORT:-"9000"}
+URL_PATH=${URL_PATH:-"status"}
+CACHE_PATH=${CACHE_PATH:-"/tmp"}
+CACHE_TIME=${CACHE_TIME:-"4"}
+
+# ENV Overrides
+#HOST="127.0.0.1"
+#PORT="9000"
+#PORT="8080"
+#URL_PATH="status"
+#URL_PATH="php-fpm-status"
+#CACHE="YES"
+#CACHE_PATH="/tmp"
+#CACHE_TIME=4
+
+
+CATEGORY="php-fpm"
+
+BASE=$( ${BASENAME} $0 )
+NAME_ROOT=$(${ECHO} "${BASE}" | ${AWK} -F"_" '{$NF=""; print $1}')
+CACHE_FILE="${CACHE_PATH}/${NAME_ROOT}.munin"
+TYPE=$( ${ECHO} ${BASE} | ${AWK} -F"_" '{print $NF}')
+
+# exec 3<>/dev/tcp/127.0.0.1/8080 ; echo -e "GET /php-fpm-status HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n" >&3 ; cat <&3 > test.txt
+
+if [[ ! -e ${CACHE_FILE} ]] || [[ $( ${FIND} ${CACHE_FILE} ! -mmin -${CACHE_TIME} ) != "" ]]; then
+  exec 3<>/dev/tcp/${HOST}/${PORT} ; ${ECHO} -e "GET /${URL_PATH} HTTP/1.1\r\nHost: ${HOST}\r\nConnection: close\r\n\r\n" >&3 ; ${CAT} <&3 > ${CACHE_FILE}
+fi
+
+POOL=$( $AWK '/pool/{print $2}' ${CACHE_FILE} )
+
+# config settings
+case $1 in
+  config)
+    case ${TYPE} in
+      connections)
+        cat <<EOM
+graph_title php5-fpm connections ${POOL}
+graph_args --base 1000 -l 0
+graph_vlabel requests / s
+graph_category ${CATEGORY}
+conns.type DERIVE
+conns.label Connections
+conns.draw LINE2
+conns.info The number of request accepted by the pool
+EOM
+      ;;
+      processes)
+        cat <<EOM
+graph_title php-fpm processes ${POOL}
+graph_vlabel processes
+graph_category ${CATEGORY}
+active.type GAUGE
+active.label Active processes
+active.draw AREA
+active.info The number of active processes
+idle.type GAUGE
+idle.label Idle processes
+idle.draw STACK
+idle.info The number of idle processes
+total.type GAUGE
+total.label Total processes
+total.draw LINE2
+total.info The number of idle + active processes
+EOM
+      ;;
+      children)
+        cat <<EOM
+graph_title php5-fpm max children reached ${POOL}
+graph_args --base 1000 -l 0
+graph_vlabel times
+graph_category ${CATEGORY}
+child.type GAUGE
+child.label max children reached
+child.draw LINE2
+child.info Number of times, the process limit has been reached, when pm tries to start more children (works only for pm 'dynamic')
+EOM
+      ;;
+      uptime)
+        cat <<EOM
+graph_title php5-fpm uptime ${POOL}
+graph_args --base 1000 -l 0\n
+graph_vlabel days
+graph_category ${CATEGORY}
+up.type GAUGE
+up.label Uptime days 
+up.draw LINE2
+up.info The number of request accepted by the pool
+EOM
+      ;;
+    esac
+    exit 0;;
+esac
+
+case $TYPE in
+  connections)
+    ${AWK} '/^accepted conn/	{print "conns.value " $3}' < ${CACHE_FILE}
+  ;;
+  processes)
+    ${AWK} '
+      /^idle/	{print "idle.value "   $3}
+      /^active/ {print "active.value " $3}
+      /^total/  {print "total.value "  $3}
+    ' < ${CACHE_FILE}
+  ;;
+  children)
+    ${AWK} '/^max children reached/    {print "child.value " $4}' < ${CACHE_FILE}
+  ;;
+  uptime)
+    ${AWK} '/^start since/    {print "up.value " $3/(24*60*60)}' < ${CACHE_FILE}
+  ;;
+esac
+
+exit 0
+
