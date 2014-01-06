@@ -68,7 +68,7 @@ if [[ ! -e ${CACHE_FILE} ]] || [[ $( ${FIND} ${CACHE_FILE} ! -mmin -${CACHE_TIME
   # OLD STYLE
   #exec 3<>/dev/tcp/${HOST}/${PORT} ; ${ECHO} -e "GET /${URL_PATH} HTTP/1.1\r\nHost: ${HOST}\r\nConnection: close\r\n\r\n" >&3 ; ${CAT} <&3 > ${CACHE_FILE}
   # Based on http://www.thatsgeeky.com/2012/02/directly-connecting-to-php-fpm/
-  SCRIPT_NAME="${URL_PATH}" SCRIPT_FILENAME="${URL_PATH}" REQUEST_METHOD=GET ${CGI_FCGI} -bind -connect ${CONNECT}
+  SCRIPT_NAME="${URL_PATH}" SCRIPT_FILENAME="${URL_PATH}" REQUEST_METHOD=GET ${CGI_FCGI} -bind -connect ${CONNECT} > ${CACHE_FILE}
 fi
 
 POOL=$( $AWK '/pool/{print $2}' ${CACHE_FILE} )
