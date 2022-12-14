@@ -88,7 +88,7 @@ case $1 in
     case ${TYPE} in
       connections)
         cat <<EOM
-graph_title php5-fpm connections ${POOL}
+graph_title ${NAME_ROOT} connections ${POOL}
 graph_args --base 1000 -l 0
 graph_vlabel requests / s
 graph_category ${CATEGORY}
@@ -101,7 +101,7 @@ EOM
       ;;
       processes)
         cat <<EOM
-graph_title php-fpm processes ${POOL}
+graph_title ${NAME_ROOT} processes ${POOL}
 graph_vlabel processes
 graph_category ${CATEGORY}
 active.type GAUGE
@@ -120,7 +120,7 @@ EOM
       ;;
       children)
         cat <<EOM
-graph_title php5-fpm max children reached ${POOL}
+graph_title ${NAME_ROOT} max children reached ${POOL}
 graph_args --base 1000 -l 0
 graph_vlabel times
 graph_category ${CATEGORY}
@@ -132,7 +132,7 @@ EOM
       ;;
       uptime)
         cat <<EOM
-graph_title php5-fpm uptime ${POOL}
+graph_title ${NAME_ROOT} uptime ${POOL}
 graph_args --base 1000 -l 0\n
 graph_vlabel days
 graph_category ${CATEGORY}
@@ -144,7 +144,7 @@ EOM
       ;;
       slowreq)
         cat <<EOM
-graph_title php5-fpm slow requests ${POOL}
+graph_title ${NAME_ROOT} slow requests ${POOL}
 graph_args --base 1000 -l 0
 graph_vlabel requests / s
 graph_category ${CATEGORY}
